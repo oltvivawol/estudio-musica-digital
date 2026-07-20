@@ -12,9 +12,9 @@ Codespace ni el teléfono tienen una, así que esta primera fase corre en
 
 ### Usar el separador
 
-1. Abrí **[`colab/separar_instrumentos.ipynb`](colab/separar_instrumentos.ipynb)** en Google Colab:
-   - Subilo a [colab.research.google.com](https://colab.research.google.com) → "Subir" → elegí el archivo, **o**
-   - Una vez que el repo esté en GitHub, usar el link directo `colab.research.google.com/github/<usuario>/estudio-musica-digital/blob/main/colab/separar_instrumentos.ipynb`
+1. Abrí el notebook en Google Colab:
+   - Link directo: https://colab.research.google.com/github/oltvivawol/estudio-musica-digital/blob/main/colab/separar_instrumentos.ipynb
+   - (El repo es privado — Colab te va a pedir autorizar el acceso a tu GitHub la primera vez. Si preferís evitar ese paso, también podés bajar [`colab/separar_instrumentos.ipynb`](colab/separar_instrumentos.ipynb) y subirlo manualmente a Colab con "Subir".)
 2. Activá GPU: `Entorno de ejecución` → `Cambiar tipo de entorno` → **GPU (T4)**.
 3. Corré las celdas de arriba a abajo, subí tu canción, descargá el .zip con las pistas separadas.
 
