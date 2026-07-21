@@ -1,8 +1,9 @@
 // Motor de audio del Estudio: reproduccion multipista sincronizada al sample,
-// mute/solo/volumen, y render offline para exportar. Usa Web Audio API directo
-// (no delega la reproduccion a wavesurfer) porque los AudioBufferSourceNode de
-// una misma llamada a start() arrancan todos en el mismo instante exacto del
-// reloj del AudioContext - es la unica forma de que las pistas no se desfasen.
+// mute/solo/volumen, velocidad global y render offline para exportar. Usa Web
+// Audio API directo (no delega la reproduccion a wavesurfer) porque los
+// AudioBufferSourceNode de una misma llamada a start() arrancan todos en el
+// mismo instante exacto del reloj del AudioContext - es la unica forma de que
+// las pistas no se desfasen.
 
 let sharedContext = null;
 function getContext() {
@@ -35,8 +36,9 @@ export class MotorAudio {
 		this.master.connect(this.ctx.destination);
 		this.pistas = [];
 		this.reproduciendo = false;
+		this.velocidad = 1; // factor global: 1 = normal, 0.5 = mitad de velocidad, 2 = doble
 		this._inicioCtxTime = 0; // ctx.currentTime cuando arranco play()
-		this._offsetPausa = 0; // segundos ya reproducidos antes de la pausa actual
+		this._offsetPausa = 0; // segundos (en tiempo de cancion) ya reproducidos antes de la pausa actual
 		this._onTick = null;
 		this._raf = null;
 	}
@@ -62,11 +64,40 @@ export class MotorAudio {
 		return pista.volumen;
 	}
 
+	/**
+	 * Arma el grafo source->gain->destino para una pista, sobre el AudioContext
+	 * (en vivo) u OfflineAudioContext (render) que se le pase. Compartido entre
+	 * play() y renderizarMezcla() para no duplicar la logica en dos lugares.
+	 */
+	_construirGrafo(ctx, pista, destino) {
+		const source = ctx.createBufferSource();
+		source.buffer = pista.buffer;
+		source.playbackRate.value = this.velocidad;
+		const gain = ctx.createGain();
+		gain.gain.value = this._gananciaEfectiva(pista);
+		source.connect(gain).connect(destino);
+		return { source, gain };
+	}
+
 	setVolumen(id, valor) {
 		const pista = this.pistas.find((p) => p.id === id);
 		if (!pista) return;
 		pista.volumen = valor;
 		if (pista._gain) pista._gain.gain.setTargetAtTime(this._gananciaEfectiva(pista), this.ctx.currentTime, 0.01);
+	}
+
+	/** Velocidad global de toda la mezcla. Todas las pistas comparten el mismo
+	 * factor, asi que se mantienen sincronizadas entre si (solo cambia el
+	 * tempo real, no el desfasaje relativo). Aplica de inmediato si esta sonando. */
+	setVelocidad(valor) {
+		const estabaReproduciendo = this.reproduciendo;
+		const posicion = this.posicionActual;
+		this.velocidad = Math.max(0.25, Math.min(4, valor));
+		if (estabaReproduciendo) {
+			this.pausar();
+			this._offsetPausa = posicion;
+			this.play();
+		}
 	}
 
 	toggleMute(id) {
@@ -91,7 +122,9 @@ export class MotorAudio {
 
 	get posicionActual() {
 		if (!this.reproduciendo) return this._offsetPausa;
-		return this._offsetPausa + (this.ctx.currentTime - this._inicioCtxTime);
+		// el tiempo real transcurrido se escala por la velocidad para saber
+		// cuanto avanzo la cancion (playbackRate=2 -> avanza el doble de rapido)
+		return this._offsetPausa + (this.ctx.currentTime - this._inicioCtxTime) * this.velocidad;
 	}
 
 	play() {
@@ -101,11 +134,7 @@ export class MotorAudio {
 		const cuando = this.ctx.currentTime + 0.05; // pequeño lookahead para arrancar todas exacto
 		for (const pista of this.pistas) {
 			if (desde >= pista.duracion) continue; // esta pista ya termino, no la arrancamos
-			const source = this.ctx.createBufferSource();
-			source.buffer = pista.buffer;
-			const gain = this.ctx.createGain();
-			gain.gain.value = this._gananciaEfectiva(pista);
-			source.connect(gain).connect(this.master);
+			const { source, gain } = this._construirGrafo(this.ctx, pista, this.master);
 			source.start(cuando, desde);
 			pista._source = source;
 			pista._gain = gain;
@@ -169,19 +198,17 @@ export class MotorAudio {
 		pista.buffer = nuevo;
 	}
 
-	/** Renderiza la mezcla completa (respetando volumen/mute/solo actuales) a un AudioBuffer. */
+	/** Renderiza la mezcla completa (respetando volumen/mute/solo/velocidad
+	 * actuales) a un AudioBuffer. La duracion offline tiene en cuenta la
+	 * velocidad: al doble de velocidad, el render dura la mitad. */
 	async renderizarMezcla() {
-		const duracion = this.duracionTotal;
+		const duracion = this.duracionTotal / this.velocidad;
 		const sr = this.ctx.sampleRate;
 		const offline = new OfflineAudioContext(2, Math.ceil(duracion * sr), sr);
 		for (const pista of this.pistas) {
 			const ganancia = this._gananciaEfectiva(pista);
 			if (ganancia <= 0) continue;
-			const source = offline.createBufferSource();
-			source.buffer = pista.buffer;
-			const gain = offline.createGain();
-			gain.gain.value = ganancia;
-			source.connect(gain).connect(offline.destination);
+			const { source } = this._construirGrafo(offline, pista, offline.destination);
 			source.start(0);
 		}
 		return offline.startRendering();

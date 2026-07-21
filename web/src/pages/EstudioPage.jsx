@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Play, Pause, Square, Mic, Download, Upload, ArrowLeft } from 'lucide-react';
+import { Play, Pause, Square, Mic, Download, Upload, ArrowLeft, Gauge, Blocks, Activity, Sparkles } from 'lucide-react';
 import { MotorAudio, Pista as PistaModelo, decodificarArchivo } from '../lib/audioEngine.js';
 import { importarArchivos } from '../lib/importarStems.js';
 import { audioBufferAWav, descargarBlob } from '../lib/wavEncoder.js';
 import PistaUI from '../components/Pista.jsx';
+import PanelPlugins from '../plugins/PanelPlugins.jsx';
+import SepararConIA from '../components/SepararConIA.jsx';
 
 const COLOR_GRABACION = '#ff6b6b';
 
@@ -24,6 +26,9 @@ export default function EstudioPage() {
 	const [tiempo, setTiempo] = useState(0);
 	const [grabando, setGrabando] = useState(false);
 	const [cargando, setCargando] = useState(false);
+	const [velocidad, setVelocidad] = useState(1);
+	const [pluginsAbierto, setPluginsAbierto] = useState(false);
+	const [iaAbierta, setIaAbierta] = useState(false);
 	const pistaRefs = useRef({});
 	const mediaRecorderRef = useRef(null);
 
@@ -33,6 +38,13 @@ export default function EstudioPage() {
 		setTiempo(seg);
 		for (const p of motor.pistas) pistaRefs.current[p.id]?.moverPlayhead(seg);
 	});
+
+	function agregarStems(stems) {
+		for (const s of stems) {
+			motor.agregarPista(new PistaModelo({ id: crypto.randomUUID(), ...s }));
+		}
+		refrescar();
+	}
 
 	async function manejarArchivos(fileList) {
 		const archivos = Array.from(fileList);
@@ -44,10 +56,7 @@ export default function EstudioPage() {
 				toast.error('No encontré audio ahí — ¿es el .zip que bajaste de Colab?');
 				return;
 			}
-			for (const s of stems) {
-				motor.agregarPista(new PistaModelo({ id: crypto.randomUUID(), ...s }));
-			}
-			refrescar();
+			agregarStems(stems);
 			toast.success(`${stems.length} pista(s) importada(s)`);
 		} catch (e) {
 			toast.error(`No pude importar: ${e.message}`);
@@ -111,6 +120,26 @@ export default function EstudioPage() {
 		}
 	}
 
+	function cambiarVelocidad(valor) {
+		setVelocidad(valor);
+		motor.setVelocidad(valor);
+	}
+
+	async function detectarBPM() {
+		if (!pistas.length) return;
+		try {
+			toast.info('Analizando el tempo…');
+			// Preferimos la pista de batería para detectar el BPM (más precisa
+			// para esto que voz/piano); si no hay, usamos la primera disponible.
+			const candidata = pistas.find((p) => /bater/i.test(p.nombre)) ?? pistas[0];
+			const { guess } = await import('web-audio-beat-detector');
+			const { bpm } = await guess(candidata.buffer);
+			toast.success(`BPM detectado: ${Math.round(bpm)} (de "${candidata.nombre}")`);
+		} catch (e) {
+			toast.error(`No pude detectar el BPM: ${e.message}`);
+		}
+	}
+
 	function eliminarPista(id) {
 		motor.quitarPista(id);
 		delete pistaRefs.current[id];
@@ -137,32 +166,73 @@ export default function EstudioPage() {
 					<ArrowLeft size={16} /> VAWOL · Arte
 				</Link>
 				<h1 className="text-sm font-medium text-white/80">Estudio de Música Digital</h1>
-				<button
-					type="button"
-					onClick={exportarMezcla}
-					disabled={!pistas.length}
-					className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium text-white transition disabled:opacity-30"
-					style={{ background: 'var(--vawol-accion)' }}
-				>
-					<Download size={14} /> Exportar
-				</button>
+				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						onClick={() => setIaAbierta(true)}
+						className="flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10"
+					>
+						<Sparkles size={14} /> Separar con IA
+					</button>
+					<button
+						type="button"
+						onClick={detectarBPM}
+						disabled={!pistas.length}
+						className="flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10 disabled:opacity-30"
+					>
+						<Activity size={14} /> BPM
+					</button>
+					<button
+						type="button"
+						onClick={() => setPluginsAbierto(true)}
+						className="flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10"
+					>
+						<Blocks size={14} /> Plugins
+					</button>
+					<button
+						type="button"
+						onClick={exportarMezcla}
+						disabled={!pistas.length}
+						className="flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium text-white transition disabled:opacity-30"
+						style={{ background: 'var(--vawol-accion)' }}
+					>
+						<Download size={14} /> Exportar
+					</button>
+				</div>
 			</header>
+
+			{pluginsAbierto && <PanelPlugins onCerrar={() => setPluginsAbierto(false)} />}
+			{iaAbierta && (
+				<SepararConIA
+					onListo={(stems) => { agregarStems(stems); setIaAbierta(false); }}
+					onCerrar={() => setIaAbierta(false)}
+				/>
+			)}
 
 			<main className="flex-1 px-6 py-6">
 				{!pistas.length ? (
-					<label className="flex h-80 cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-white/15 text-white/50 transition hover:border-white/30 hover:text-white/70">
-						<Upload size={32} />
-						<p className="text-sm">
-							{cargando ? 'Importando…' : 'Subí el .zip de Colab o los archivos de audio sueltos'}
-						</p>
-						<input
-							type="file"
-							multiple
-							accept=".zip,.wav,.mp3,.m4a,.ogg,.flac"
-							className="hidden"
-							onChange={(e) => manejarArchivos(e.target.files)}
-						/>
-					</label>
+					<div className="flex h-80 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-white/15 text-white/50">
+						<button
+							type="button"
+							onClick={() => setIaAbierta(true)}
+							className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium text-white transition hover:brightness-110"
+							style={{ background: 'var(--vawol-accion)' }}
+						>
+							<Sparkles size={16} /> Separar una canción con IA
+						</button>
+						<span className="text-xs text-white/30">o</span>
+						<label className="flex cursor-pointer flex-col items-center gap-2 text-sm transition hover:text-white/70">
+							<Upload size={22} />
+							{cargando ? 'Importando…' : 'Subí un .zip ya separado o archivos de audio sueltos'}
+							<input
+								type="file"
+								multiple
+								accept=".zip,.wav,.mp3,.m4a,.ogg,.flac"
+								className="hidden"
+								onChange={(e) => manejarArchivos(e.target.files)}
+							/>
+						</label>
+					</div>
 				) : (
 					<div className="flex flex-col gap-3">
 						{pistas.map((p) => (
@@ -216,6 +286,20 @@ export default function EstudioPage() {
 					</button>
 					<span className="ml-2 font-mono text-sm text-white/50">
 						{formatearTiempo(tiempo)} / {formatearTiempo(motor.duracionTotal)}
+					</span>
+					<span className="ml-4 flex items-center gap-2 text-white/50">
+						<Gauge size={15} />
+						<input
+							type="range"
+							min="0.5"
+							max="2"
+							step="0.05"
+							value={velocidad}
+							onChange={(e) => cambiarVelocidad(Number(e.target.value))}
+							className="w-24 accent-[var(--vawol-accion)]"
+							title="Velocidad de toda la mezcla"
+						/>
+						<span className="w-9 font-mono text-xs">{velocidad.toFixed(2)}x</span>
 					</span>
 				</footer>
 			)}

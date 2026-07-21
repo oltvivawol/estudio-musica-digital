@@ -20,7 +20,8 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
-    "wavesurfer.js": "^7.12.11"
+    "wavesurfer.js": "^7.12.11",
+    "web-audio-beat-detector": "^8.2.37"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
