@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+/* Paleta oficial VAWOL (misma que vawol-app y el resto del ecosistema),
+   adaptada a un tema oscuro tipo estudio de audio. */
+:root {
+  --vawol-principal: #23374d;
+  --vawol-principal-hondo: #16232f;
+  --vawol-accion: #e67e22;
+  --vawol-accion-claro: #f39c12;
+  --vawol-exito: #27ae60;
+  --vawol-alerta: #f1c40f;
+  --vawol-error: #e74c3c;
+
+  /* Colores por instrumento (identidad de cada pista, no genérico) */
+  --pista-voz: #e67e22;
+  --pista-bateria: #f1c40f;
+  --pista-bajo: #9b59b6;
+  --pista-piano: #27ae60;
+  --pista-guitarra: #3498db;
+  --pista-otros: #95a5a6;
+
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--vawol-principal-hondo);
+  color: #eef1f4;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--vawol-accion) 40%, transparent);
+}
