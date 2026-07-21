@@ -9,8 +9,8 @@ import { importarArchivos } from '../lib/importarStems.js';
 
 const CLAVE_URL_GUARDADA = 'vawol-estudio-url-colab';
 
-export default function SepararConIA({ onListo, onCerrar }) {
-	const [url, setUrl] = useState(() => localStorage.getItem(CLAVE_URL_GUARDADA) || '');
+export default function SepararConIA({ onListo, onCerrar, urlInicial }) {
+	const [url, setUrl] = useState(() => urlInicial || localStorage.getItem(CLAVE_URL_GUARDADA) || '');
 	const [modelo, setModelo] = useState('htdemucs_6s');
 	const [archivo, setArchivo] = useState(null);
 	const [procesando, setProcesando] = useState(false);

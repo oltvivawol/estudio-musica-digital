@@ -50,7 +50,7 @@ export default function ChatJano({ motor, pistas, onAbrirPlugin, onAbrirSeparado
 				onCambiarVelocidad?.(Math.max(0.5, Math.min(2, Number(accion.velocidad))));
 				return 'velocidad cambiada';
 			case 'abrir_plugin': onAbrirPlugin?.(accion.nombre); return `plugin ${accion.nombre} abierto`;
-			case 'abrir_separador': onAbrirSeparador?.(); return 'separador abierto';
+			case 'abrir_separador': onAbrirSeparador?.(accion.url_colab); return 'separador abierto';
 			case 'exportar': onExportar?.(); return 'exportando';
 			default: return `acción desconocida: ${tipo}`;
 		}

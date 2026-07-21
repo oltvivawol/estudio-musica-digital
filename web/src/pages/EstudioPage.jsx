@@ -31,6 +31,7 @@ export default function EstudioPage() {
 	const [pluginsAbierto, setPluginsAbierto] = useState(false);
 	const [pluginInicial, setPluginInicial] = useState(null);
 	const [iaAbierta, setIaAbierta] = useState(false);
+	const [urlColabInicial, setUrlColabInicial] = useState('');
 	const pistaRefs = useRef({});
 	const mediaRecorderRef = useRef(null);
 
@@ -213,6 +214,7 @@ export default function EstudioPage() {
 			)}
 			{iaAbierta && (
 				<SepararConIA
+					urlInicial={urlColabInicial}
 					onListo={(stems) => { agregarStems(stems); setIaAbierta(false); }}
 					onCerrar={() => setIaAbierta(false)}
 				/>
@@ -317,7 +319,7 @@ export default function EstudioPage() {
 				motor={motor}
 				pistas={pistas}
 				onAbrirPlugin={abrirPlugin}
-				onAbrirSeparador={() => setIaAbierta(true)}
+				onAbrirSeparador={(url) => { if (url) setUrlColabInicial(url); setIaAbierta(true); }}
 				onExportar={exportarMezcla}
 				onCambiarVelocidad={cambiarVelocidad}
 			/>
