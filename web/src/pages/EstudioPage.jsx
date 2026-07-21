@@ -8,6 +8,7 @@ import { audioBufferAWav, descargarBlob } from '../lib/wavEncoder.js';
 import PistaUI from '../components/Pista.jsx';
 import PanelPlugins from '../plugins/PanelPlugins.jsx';
 import SepararConIA from '../components/SepararConIA.jsx';
+import ChatJano from '../components/ChatJano.jsx';
 
 const COLOR_GRABACION = '#ff6b6b';
 
@@ -28,6 +29,7 @@ export default function EstudioPage() {
 	const [cargando, setCargando] = useState(false);
 	const [velocidad, setVelocidad] = useState(1);
 	const [pluginsAbierto, setPluginsAbierto] = useState(false);
+	const [pluginInicial, setPluginInicial] = useState(null);
 	const [iaAbierta, setIaAbierta] = useState(false);
 	const pistaRefs = useRef({});
 	const mediaRecorderRef = useRef(null);
@@ -125,6 +127,11 @@ export default function EstudioPage() {
 		motor.setVelocidad(valor);
 	}
 
+	function abrirPlugin(nombre) {
+		setPluginInicial(nombre);
+		setPluginsAbierto(true);
+	}
+
 	async function detectarBPM() {
 		if (!pistas.length) return;
 		try {
@@ -184,7 +191,7 @@ export default function EstudioPage() {
 					</button>
 					<button
 						type="button"
-						onClick={() => setPluginsAbierto(true)}
+						onClick={() => { setPluginInicial(null); setPluginsAbierto(true); }}
 						className="flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10"
 					>
 						<Blocks size={14} /> Plugins
@@ -201,7 +208,9 @@ export default function EstudioPage() {
 				</div>
 			</header>
 
-			{pluginsAbierto && <PanelPlugins onCerrar={() => setPluginsAbierto(false)} />}
+			{pluginsAbierto && (
+				<PanelPlugins pluginInicial={pluginInicial} onCerrar={() => setPluginsAbierto(false)} />
+			)}
 			{iaAbierta && (
 				<SepararConIA
 					onListo={(stems) => { agregarStems(stems); setIaAbierta(false); }}
@@ -303,6 +312,15 @@ export default function EstudioPage() {
 					</span>
 				</footer>
 			)}
+
+			<ChatJano
+				motor={motor}
+				pistas={pistas}
+				onAbrirPlugin={abrirPlugin}
+				onAbrirSeparador={() => setIaAbierta(true)}
+				onExportar={exportarMezcla}
+				onCambiarVelocidad={cambiarVelocidad}
+			/>
 		</div>
 	);
 }

@@ -18,8 +18,8 @@ const CATALOGO = [
 	{ id: 'dj', nombre: 'Discos de DJ', icon: Disc3, disponible: false },
 ];
 
-export default function PanelPlugins({ onCerrar }) {
-	const [abierto, setAbierto] = useState(null);
+export default function PanelPlugins({ onCerrar, pluginInicial = null }) {
+	const [abierto, setAbierto] = useState(pluginInicial);
 	const plugin = CATALOGO.find((p) => p.id === abierto);
 
 	return (
