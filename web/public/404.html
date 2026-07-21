@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Estudio de Música Digital · VAWOL Arte</title>
+    <script>
+      // GitHub Pages no sabe enrutar client-side (SPA): cuando alguien entra
+      // directo a /estudio (o recarga), GH Pages busca ese archivo literal y
+      // no lo encuentra -> sirve este 404.html. Guardamos la ruta pedida y
+      // redirigimos a index.html, que la restaura antes de que React monte.
+      var ruta = location.pathname + location.search + location.hash;
+      location.replace('/?p=' + encodeURIComponent(ruta));
+    </script>
+  </head>
+  <body></body>
+</html>

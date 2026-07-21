@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Separá cualquier canción en sus instrumentos con IA, grabá encima, editá cada pista y exportá tu propia mezcla. Sin instalar nada." />
     <title>Estudio de Música Digital · VAWOL Arte</title>
+    <script>
+      // Contraparte de public/404.html: si venimos de una redirección por una
+      // ruta no encontrada por GitHub Pages, restauramos la URL real antes
+      // de que React Router monte, para que aterrice en la ruta correcta.
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var ruta = params.get('p');
+        if (ruta) history.replaceState(null, '', ruta);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
