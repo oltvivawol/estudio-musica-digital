@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Play, Pause, Square, Mic, Download, Upload, ArrowLeft, Gauge, Blocks, Activity, Sparkles } from 'lucide-react';
+import { Play, Pause, Square, Mic, Download, Upload, ArrowLeft, Gauge, Blocks, Activity, Sparkles, BookOpen } from 'lucide-react';
 import { MotorAudio, Pista as PistaModelo, decodificarArchivo } from '../lib/audioEngine.js';
 import { importarArchivos } from '../lib/importarStems.js';
 import { audioBufferAWav, descargarBlob } from '../lib/wavEncoder.js';
@@ -9,6 +9,7 @@ import PistaUI from '../components/Pista.jsx';
 import PanelPlugins from '../plugins/PanelPlugins.jsx';
 import SepararConIA from '../components/SepararConIA.jsx';
 import ChatJano from '../components/ChatJano.jsx';
+import GuiaEstudio from '../components/GuiaEstudio.jsx';
 
 const COLOR_GRABACION = '#ff6b6b';
 
@@ -32,6 +33,7 @@ export default function EstudioPage() {
 	const [pluginInicial, setPluginInicial] = useState(null);
 	const [iaAbierta, setIaAbierta] = useState(false);
 	const [urlColabInicial, setUrlColabInicial] = useState('');
+	const [guiaAbierta, setGuiaAbierta] = useState(false);
 	const pistaRefs = useRef({});
 	const mediaRecorderRef = useRef(null);
 
@@ -177,6 +179,13 @@ export default function EstudioPage() {
 				<div className="flex items-center gap-2">
 					<button
 						type="button"
+						onClick={() => setGuiaAbierta(true)}
+						className="flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10"
+					>
+						<BookOpen size={14} /> Guía
+					</button>
+					<button
+						type="button"
 						onClick={() => setIaAbierta(true)}
 						className="flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10"
 					>
@@ -209,6 +218,7 @@ export default function EstudioPage() {
 				</div>
 			</header>
 
+			{guiaAbierta && <GuiaEstudio onCerrar={() => setGuiaAbierta(false)} />}
 			{pluginsAbierto && (
 				<PanelPlugins pluginInicial={pluginInicial} onCerrar={() => setPluginsAbierto(false)} />
 			)}
