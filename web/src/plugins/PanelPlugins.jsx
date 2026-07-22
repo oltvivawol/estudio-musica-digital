@@ -4,14 +4,16 @@
 // import() no se dispare hasta que el componente se monta de verdad. Así el
 // Estudio no carga de entrada el peso de los 4 plugins, solo el que se use.
 import { lazy, Suspense, useState } from 'react';
-import { X, Piano, Drum, Clock3, SlidersHorizontal, Disc3 } from 'lucide-react';
+import { X, Piano, Drum, Clock3, SlidersHorizontal, Disc3, AudioLines } from 'lucide-react';
 
 const Sintetizador = lazy(() => import('./Sintetizador.jsx'));
 const TablaDrums = lazy(() => import('./TablaDrums.jsx'));
 const Metronomo = lazy(() => import('./Metronomo.jsx'));
+const Sampler = lazy(() => import('./Sampler.jsx'));
 
 const CATALOGO = [
 	{ id: 'sintetizador', nombre: 'Sintetizador + MIDI', icon: Piano, Componente: Sintetizador, disponible: true },
+	{ id: 'sampler', nombre: 'Sampler (tu instrumento)', icon: AudioLines, Componente: Sampler, disponible: true },
 	{ id: 'drums', nombre: 'Tabla de Drums', icon: Drum, Componente: TablaDrums, disponible: true },
 	{ id: 'metronomo', nombre: 'Metrónomo', icon: Clock3, Componente: Metronomo, disponible: true },
 	{ id: 'mixer', nombre: 'Mixer', icon: SlidersHorizontal, disponible: false },
