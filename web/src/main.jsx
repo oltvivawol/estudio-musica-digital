@@ -4,12 +4,15 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import './index.css'
 import App from './App.jsx'
+import { AuthVawolProvider } from './context/AuthVawol.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
-      <Toaster theme="dark" position="bottom-right" />
+      <AuthVawolProvider>
+        <App />
+        <Toaster theme="dark" position="bottom-right" />
+      </AuthVawolProvider>
     </BrowserRouter>
   </StrictMode>,
 )

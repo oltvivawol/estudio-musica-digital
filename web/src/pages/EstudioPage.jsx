@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Play, Pause, Square, Mic, Download, Upload, ArrowLeft, Gauge, Blocks, Activity, Sparkles, BookOpen } from 'lucide-react';
+import { Play, Pause, Square, Mic, Download, Upload, ArrowLeft, Gauge, Blocks, Activity, Sparkles, BookOpen, UserRound, LogOut } from 'lucide-react';
 import { MotorAudio, Pista as PistaModelo, decodificarArchivo } from '../lib/audioEngine.js';
 import { importarArchivos } from '../lib/importarStems.js';
 import { audioBufferAWav, descargarBlob } from '../lib/wavEncoder.js';
@@ -10,6 +10,8 @@ import PanelPlugins from '../plugins/PanelPlugins.jsx';
 import SepararConIA from '../components/SepararConIA.jsx';
 import ChatJano from '../components/ChatJano.jsx';
 import GuiaEstudio from '../components/GuiaEstudio.jsx';
+import LoginVawol from '../components/LoginVawol.jsx';
+import { useVawol } from '../context/AuthVawol.jsx';
 
 const COLOR_GRABACION = '#ff6b6b';
 
@@ -34,10 +36,23 @@ export default function EstudioPage() {
 	const [iaAbierta, setIaAbierta] = useState(false);
 	const [urlColabInicial, setUrlColabInicial] = useState('');
 	const [guiaAbierta, setGuiaAbierta] = useState(false);
+	const [loginAbierto, setLoginAbierto] = useState(false);
+	const [menuCuenta, setMenuCuenta] = useState(false);
+	const { usuario, salir } = useVawol();
 	const pistaRefs = useRef({});
 	const mediaRecorderRef = useRef(null);
 
 	const refrescar = useCallback(() => setPistas([...motor.pistas]), [motor]);
+
+	// Al volver de MercadoPago (?pago=exito|error|pendiente) avisamos y limpiamos la URL.
+	useEffect(() => {
+		const pago = new URLSearchParams(window.location.search).get('pago');
+		if (!pago) return;
+		if (pago === 'exito') toast.success('¡Pago recibido! Tu pase se activa en segundos, apenas MercadoPago lo confirma.');
+		else if (pago === 'pendiente') toast.info('Tu pago quedó pendiente — el pase se activa solo cuando se acredite.');
+		else toast.error('El pago no se completó. Podés intentar de nuevo cuando quieras.');
+		window.history.replaceState(null, '', window.location.pathname);
+	}, []);
 
 	motor.onTick((seg) => {
 		setTiempo(seg);
@@ -177,6 +192,27 @@ export default function EstudioPage() {
 				</Link>
 				<h1 className="text-sm font-medium text-white/80">Estudio de Música Digital</h1>
 				<div className="flex items-center gap-2">
+					<div className="relative">
+						<button
+							type="button"
+							onClick={() => (usuario ? setMenuCuenta((v) => !v) : setLoginAbierto(true))}
+							className="flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium text-white/80 transition hover:bg-white/10"
+						>
+							<UserRound size={14} /> {usuario ? (usuario.name || 'Mi cuenta') : 'Ingresar'}
+						</button>
+						{menuCuenta && usuario && (
+							<div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-white/10 bg-[var(--vawol-principal-hondo)] p-3 shadow-2xl">
+								<p className="mb-2 truncate text-xs text-white/50">{usuario.email}</p>
+								<button
+									type="button"
+									onClick={() => { salir(); setMenuCuenta(false); toast.info('Sesión cerrada'); }}
+									className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-white/70 hover:bg-white/10"
+								>
+									<LogOut size={12} /> Cerrar sesión
+								</button>
+							</div>
+						)}
+					</div>
 					<button
 						type="button"
 						onClick={() => setGuiaAbierta(true)}
@@ -218,6 +254,7 @@ export default function EstudioPage() {
 				</div>
 			</header>
 
+			{loginAbierto && <LoginVawol onCerrar={() => setLoginAbierto(false)} />}
 			{guiaAbierta && <GuiaEstudio onCerrar={() => setGuiaAbierta(false)} />}
 			{pluginsAbierto && (
 				<PanelPlugins pluginInicial={pluginInicial} onCerrar={() => setPluginsAbierto(false)} />
