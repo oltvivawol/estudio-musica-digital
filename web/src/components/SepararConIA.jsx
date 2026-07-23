@@ -42,6 +42,13 @@ export default function SepararConIA({ onListo, onCerrar, urlInicial }) {
 
 	async function separarGPU() {
 		if (!archivo) return;
+		// El servidor corta las subidas en ~30MB (limite de Cloud Run). Un tema en
+		// MP3 pesa 5-10MB; los que se pasan suelen ser WAVs — avisamos claro antes
+		// de subir en vano.
+		if (archivo.size > 29 * 1024 * 1024) {
+			toast.error(`Ese archivo pesa ${(archivo.size / 1024 / 1024).toFixed(0)}MB y el máximo es 29MB. Convertilo a MP3 (una canción entera en MP3 pesa 5-10MB) y probá de nuevo.`);
+			return;
+		}
 		setProcesando(true);
 		setProgreso('Subiendo la canción…');
 		const inicio = Date.now();
