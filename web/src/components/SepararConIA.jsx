@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { X, Sparkles, Zap, FlaskConical } from 'lucide-react';
 import { importarArchivos } from '../lib/importarStems.js';
 import { useVawol } from '../context/AuthVawol.jsx';
-import { cuentaEstudio, linkPase, separarConGPU } from '../lib/vawolId.js';
+import { cuentaEstudio, linkPase, iniciarSeparacion, estadoSeparacion, resultadoSeparacion } from '../lib/vawolId.js';
 import LoginVawol from './LoginVawol.jsx';
 
 const CLAVE_URL_GUARDADA = 'vawol-estudio-url-colab';
@@ -23,6 +23,7 @@ export default function SepararConIA({ onListo, onCerrar, urlInicial }) {
 	const [modelo, setModelo] = useState('htdemucs_6s');
 	const [archivo, setArchivo] = useState(null);
 	const [procesando, setProcesando] = useState(false);
+	const [progreso, setProgreso] = useState('');
 	const [comprando, setComprando] = useState(false);
 
 	useEffect(() => {
@@ -42,8 +43,28 @@ export default function SepararConIA({ onListo, onCerrar, urlInicial }) {
 	async function separarGPU() {
 		if (!archivo) return;
 		setProcesando(true);
+		setProgreso('Subiendo la canción…');
+		const inicio = Date.now();
 		try {
-			const blob = await separarConGPU(archivo, modelo);
+			// Asíncrono: iniciamos el trabajo y preguntamos cada 5s cómo va — sin
+			// conexiones largas que los proxies cortan (htdemucs_ft tarda minutos).
+			const trabajo = await iniciarSeparacion(archivo, modelo);
+			let estado = 'procesando';
+			while (estado === 'procesando') {
+				await new Promise((ok) => setTimeout(ok, 5000));
+				const minutos = Math.floor((Date.now() - inicio) / 60000);
+				setProgreso(`Separando con la GPU… (${minutos ? `${minutos} min` : 'arrancando'})`);
+				try {
+					const d = await estadoSeparacion(trabajo);
+					estado = d.estado;
+					if (estado === 'error') throw new Error(d.detalle || 'La separación falló en la GPU');
+				} catch (e) {
+					if (e.status === 404 || e.status === 503) throw e; // trabajo perdido o servidor caído
+					// error de red pasajero: seguimos preguntando
+				}
+			}
+			setProgreso('Descargando los instrumentos…');
+			const blob = await resultadoSeparacion(trabajo);
 			await importarZip(blob);
 			// Refresca el estado (si usó el trial, ya no lo tiene disponible)
 			cuentaEstudio().then(setCuenta).catch(() => {});
@@ -58,6 +79,7 @@ export default function SepararConIA({ onListo, onCerrar, urlInicial }) {
 			}
 		} finally {
 			setProcesando(false);
+			setProgreso('');
 		}
 	}
 
@@ -209,8 +231,13 @@ export default function SepararConIA({ onListo, onCerrar, urlInicial }) {
 						className="mt-2 rounded-full px-4 py-2.5 text-sm font-medium text-white disabled:opacity-30"
 						style={{ background: 'var(--vawol-accion)' }}
 					>
-						{procesando ? 'Separando (puede tardar 1-3 min)…' : 'Separar instrumentos'}
+						{procesando ? (progreso || 'Separando (puede tardar unos minutos)…') : 'Separar instrumentos'}
 					</button>
+					{procesando && modo === 'gpu' && (
+						<p className="text-center text-[11px] text-white/30">
+							El modelo de mejor calidad (htdemucs_ft) puede tardar 5-10 min en canciones largas — podés dejarlo trabajando.
+						</p>
+					)}
 				</div>
 			</div>
 		</div>

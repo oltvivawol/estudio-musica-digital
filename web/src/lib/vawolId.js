@@ -73,17 +73,38 @@ export async function linkPase() {
 	return d; // { id, init_point, precio }
 }
 
-export async function separarConGPU(archivo, modelo) {
+// La separación es asíncrona: se inicia un trabajo, se pregunta el estado cada
+// unos segundos y se descarga al final — así no queda ninguna conexión abierta
+// minutos (los proxies de internet cortan a los ~100s y htdemucs_ft tarda más).
+export async function iniciarSeparacion(archivo, modelo) {
 	const form = new FormData();
 	form.append('archivo', archivo);
 	form.append('modelo', modelo);
 	const r = await fetch(`${API}/estudio/separar`, { method: 'POST', headers: encabezadoAuth(), body: form });
+	const d = await r.json().catch(() => ({}));
 	if (!r.ok) {
-		let d = {};
-		try { d = await r.json(); } catch { /* respuesta sin json */ }
 		const e = new Error(d?.message || d?.error || `HTTP ${r.status}`);
 		e.status = r.status;
 		e.precio = d?.precio;
+		throw e;
+	}
+	return d.trabajo;
+}
+
+export async function estadoSeparacion(trabajo) {
+	const r = await fetch(`${API}/estudio/separar/estado/${encodeURIComponent(trabajo)}`, { headers: encabezadoAuth() });
+	const d = await r.json().catch(() => ({}));
+	if (!r.ok) { const e = new Error(d?.message || d?.error || `HTTP ${r.status}`); e.status = r.status; throw e; }
+	return d; // { estado: procesando | listo | error, detalle }
+}
+
+export async function resultadoSeparacion(trabajo) {
+	const r = await fetch(`${API}/estudio/separar/resultado/${encodeURIComponent(trabajo)}`, { headers: encabezadoAuth() });
+	if (!r.ok) {
+		let d = {};
+		try { d = await r.json(); } catch { /* sin json */ }
+		const e = new Error(d?.message || d?.error || `HTTP ${r.status}`);
+		e.status = r.status;
 		throw e;
 	}
 	return r.blob(); // el .zip de instrumentos
