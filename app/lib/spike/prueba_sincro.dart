@@ -120,12 +120,17 @@ class PruebaSincro {
     );
     final sub = stream.listen((bytes) {
       // Los bytes vienen como float32 little-endian. Copiamos para no depender
-      // de que el offset del buffer esté alineado a 4.
-      final copia = Uint8List.fromList(bytes);
+      // de que el offset del buffer esté alineado a 4, y recortamos a un
+      // múltiplo de 4: si llegara un chunk cortado a la mitad de una muestra,
+      // asFloat32List tira excepción y se caería toda la medición.
+      final completos = (bytes.lengthInBytes ~/ 4) * 4;
+      if (completos == 0) return;
+      final copia = Uint8List.fromList(bytes.sublist(0, completos));
       final muestras = copia.buffer.asFloat32List();
       for (final v in muestras) {
         final a = v.abs();
-        if (a > pico) pico = a;
+        // Un NaN o infinito daría un pico sin sentido en vez de un error claro.
+        if (a.isFinite && a > pico) pico = a;
       }
     });
     await Future<void>.delayed(ventana);
