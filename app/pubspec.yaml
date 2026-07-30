@@ -7,6 +7,8 @@ environment:
   sdk: ^3.12.0
 
 dependencies:
+  archive: ^4.0.9
+  file_picker: ^11.0.2
   flutter:
     sdk: flutter
   # Motor de audio: FFI sobre SoLoud (C++). Es el único candidato que expone
