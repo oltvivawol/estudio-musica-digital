@@ -1,0 +1,79 @@
+name: App Android (Estudio)
+
+# Compila el APK del Estudio de Música Digital. Se publica como Release
+# descargable al taggear `app-v*`, y como artifact en cada push a la carpeta
+# app/ para poder probar sin taggear.
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/app-android.yml']
+    tags: ['app-v*']
+  pull_request:
+    paths: ['app/**', '.github/workflows/app-android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Versión fijada: flutter_soloud 4.x necesita un Dart reciente, y no
+      # queremos que una actualización del runner rompa el build sin aviso.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          cache: true
+
+      - name: Dependencias
+        working-directory: app
+        run: flutter pub get
+
+      # Estos dos corren sin necesidad de un teléfono: atajan errores de
+      # compilación y regresiones del codificador WAV antes de armar el APK.
+      - name: Análisis estático
+        working-directory: app
+        run: flutter analyze
+
+      - name: Tests
+        working-directory: app
+        run: flutter test
+
+      - name: Compilar APK
+        working-directory: app
+        run: flutter build apk --release
+
+      - name: Renombrar
+        id: apk
+        working-directory: app
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk estudio-vawol.apk
+          echo "ruta=app/estudio-vawol.apk" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: estudio-vawol-apk-${{ github.sha }}
+          path: ${{ steps.apk.outputs.ruta }}
+          retention-days: 30
+
+      - name: Publicar Release (solo en tags app-v*)
+        if: startsWith(github.ref, 'refs/tags/app-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.apk.outputs.ruta }}
+          tag_name: ${{ github.ref_name }}
+          name: Estudio de Música Digital ${{ github.ref_name }}
+          body: |
+            APK del Estudio de Música Digital de VAWOL.
+
+            Para instalarlo hay que permitir "instalar apps de orígenes
+            desconocidos" en Android — no está en Play Store todavía.
