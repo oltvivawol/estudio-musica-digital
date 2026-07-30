@@ -1,0 +1,26 @@
+name: vawol_estudio
+description: "Estudio de Música Digital VAWOL — app nativa Android."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Motor de audio: FFI sobre SoLoud (C++). Es el único candidato que expone
+  # un reloj de mezclador compartido (getEngineTime) + arranque programado a
+  # un instante absoluto (playScheduled) — el equivalente exacto de lo que
+  # hace la web con ctx.currentTime + source.start(cuando). Sin eso las
+  # pistas se desfasan entre sí y no hay estudio multipista posible.
+  flutter_soloud: ^4.1.3
+  path_provider: ^2.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
