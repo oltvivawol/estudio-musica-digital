@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
@@ -65,12 +65,12 @@ class _PantallaEstudioState extends State<PantallaEstudio> {
   }
 
   Future<void> _elegirArchivo() async {
-    final resultado = await FilePicker.pickFiles(
-      dialogTitle: 'Elegí el .zip de instrumentos',
-      withData: false,
-    );
-    final ruta = resultado?.files.single.path;
-    if (ruta == null) return;
+    // Sin filtro de tipos: en Android filtrar por extensión esconde archivos
+    // que el usuario sí tiene (los .zip suelen quedar afuera según el gestor
+    // de archivos). Validamos el contenido nosotros al abrirlo.
+    final elegido = await openFile();
+    final ruta = elegido?.path;
+    if (ruta == null || ruta.isEmpty) return;
 
     setState(() {
       _cargando = true;
